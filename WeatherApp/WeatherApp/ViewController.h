@@ -8,7 +8,7 @@
 
 #import <UIKit/UIKit.h>
 
-@interface ViewController : UIViewController <UITextViewDelegate>
+@interface ViewController : UIViewController <UITextViewDelegate, UIAlertViewDelegate>
 
 // Control components
 @property (nonatomic, strong) UIView *controlView;
@@ -45,5 +45,9 @@
 -(void)buildForecast;
 -(void)buildControls;
 -(bool)textFieldShouldReturn:(UITextField *)textField;
+-(bool) isNumeric:(NSString*) checkText;
+-(void)shareCurrentWeather;
+-(void)shareWeatherForecast;
+-(void)facebookLogin;
 
 @end

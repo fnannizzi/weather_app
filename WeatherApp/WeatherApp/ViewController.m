@@ -14,13 +14,68 @@
 
 @implementation ViewController
 
+-(void)shareCurrentWeather
+{
+    
+}
+
+-(void)shareWeatherForecast
+{
+    
+}
+
+-(void)facebookLogin
+{
+    
+}
+
 -(void)initiateSearch
 {
-    self.servletURL = @"http://cs-server.usc.edu:65223/examples/servlet/weathersearch?location=";
+    bool isZipCode = false;
+    bool isCity = false;
     
+    NSString *locationStr = self.locationField.text;
+    
+    if([locationStr length] < 1){
+        NSLog(@"Aborting search on null location string.");
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"Please enter a city name or zip code." delegate:self cancelButtonTitle:@"Okay" otherButtonTitles:nil];
+        [alert show];
+        return;
+    }
+    if([self isNumeric:locationStr]){
+        if([locationStr length] != 5){
+            NSLog(@"Aborting search on incorrect zip code.");
+            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"Are you searching for a zip code? Make sure to include 5 numbers." delegate:self cancelButtonTitle:@"Okay" otherButtonTitles:nil];
+            [alert show];
+            return;
+        }
+        else {
+            NSLog(@":Location is a zip code.");
+            isZipCode = true;
+        }
+    }
+    else {
+        NSLog(@":Location is a city.");
+        isCity = true;
+    }
+    
+    
+    self.servletURL = @"http://cs-server.usc.edu:65223/examples/servlet/weathersearch?location=";
     NSLog(@"Beginning location search on %@.", self.locationField.text);
     
-    NSString *weatherURLStr = [NSString stringWithFormat:@"%@%@%@", self.servletURL, self.locationField.text, @"&type=city&tempUnit=f"];
+    NSString *weatherURLStr;
+    if(isCity){
+        if([self.tempFRadioButton isSelected]==YES)
+            weatherURLStr = [NSString stringWithFormat:@"%@%@%@", self.servletURL, locationStr, @"&type=city&tempUnit=f"];
+        else
+            weatherURLStr = [NSString stringWithFormat:@"%@%@%@", self.servletURL, locationStr, @"&type=city&tempUnit=c"];
+    }
+    else if(isZipCode){
+        if([self.tempFRadioButton isSelected]==YES)
+            weatherURLStr = [NSString stringWithFormat:@"%@%@%@", self.servletURL, locationStr, @"&type=zip&tempUnit=f"];
+        else
+            weatherURLStr = [NSString stringWithFormat:@"%@%@%@", self.servletURL, locationStr, @"&type=zip&tempUnit=c"];
+    }
     
     NSURL *weatherURL = [NSURL URLWithString:[weatherURLStr stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
     
@@ -118,21 +173,21 @@
     
     // Add share current weather button
     self.shareCurrentWeatherButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
-    //[self.shareCurrentWeatherButton addTarget:self action:@selector(shareCurrentWeather) forControlEvents:UIControlEventTouchDown];
+    [self.shareCurrentWeatherButton addTarget:self action:@selector(shareCurrentWeather) forControlEvents:UIControlEventTouchDown];
     [self.shareCurrentWeatherButton setTitle:@"" forState:UIControlStateNormal];
     self.shareCurrentWeatherButton.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
     [self.shareCurrentWeatherButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    self.shareCurrentWeatherButton.frame = CGRectMake(10, 500, (self.screenWidth - 20), 30);
+    self.shareCurrentWeatherButton.frame = CGRectMake(10, 330, (self.screenWidth - 20), 30);
     // Add the share current weather button to the display view
     [self.displayView addSubview:self.shareCurrentWeatherButton];
    
     // Add share weather forecast button
     self.shareWeatherForecastButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
-    //[self.shareWeatherForecastButton addTarget:self action:@selector(shareWeatherForecast) forControlEvents:UIControlEventTouchDown];
+    [self.shareWeatherForecastButton addTarget:self action:@selector(shareWeatherForecast) forControlEvents:UIControlEventTouchDown];
     [self.shareWeatherForecastButton setTitle:@"" forState:UIControlStateNormal];
     self.shareWeatherForecastButton.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
     [self.shareWeatherForecastButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    self.shareWeatherForecastButton.frame = CGRectMake(10, 550, (self.screenWidth - 20), 30);
+    self.shareWeatherForecastButton.frame = CGRectMake(10, 360, (self.screenWidth - 20), 30);
     // Add the share current weather button to the display view
     [self.displayView addSubview:self.shareWeatherForecastButton];
     
@@ -278,6 +333,10 @@
         default:
             break;
     }
+    NSString *locationStr = self.locationField.text;
+    
+    if([locationStr length] > 1)
+        [self initiateSearch];
 }
 
 -(void)buildControls
@@ -363,6 +422,21 @@
 - (bool)textFieldShouldReturn:(UITextField *)textField {
     [textField resignFirstResponder];
     return NO;
+}
+
+-(bool) isNumeric:(NSString*) checkText
+{
+	NSNumberFormatter* numberFormatter = [[NSNumberFormatter alloc] init];
+	
+	NSNumber* number = [numberFormatter numberFromString:checkText];
+	
+	if (number != nil) {
+		NSLog(@"%@ is numeric", checkText);
+		return true;
+	}
+	
+	NSLog(@"%@ is not numeric", checkText);
+    return false;
 }
 
 - (void)viewDidLoad
