@@ -7,6 +7,7 @@
 //
 
 #import "ViewController.h"
+#import "AppDelegate.h"
 
 @interface ViewController ()
 
@@ -14,19 +15,101 @@
 
 @implementation ViewController
 
+
 -(void)shareCurrentWeather
 {
+    [self facebookLogin];
+    // Put together the dialog parameters
+    NSMutableDictionary *params =
+    [NSMutableDictionary dictionaryWithObjectsAndKeys:
+     @"Facebook SDK for iOS", @"name",
+     @"Build great social apps and get more installs.", @"caption",
+     @"The Facebook SDK for iOS makes it easier and faster to develop Facebook integrated iOS apps.", @"description",
+     @"https://developers.facebook.com/ios", @"link",
+     @"https://raw.github.com/fbsamples/ios-3.x-howtos/master/Images/iossdk_logo.png", @"picture",
+     nil];
     
+    // Invoke the dialog
+    [FBWebDialogs presentFeedDialogModallyWithSession:nil
+                                           parameters:params
+                                              handler:
+     ^(FBWebDialogResult result, NSURL *resultURL, NSError *error) {
+         if (error) {
+             // Error launching the dialog or publishing a story.
+             NSLog(@"Error publishing story.");
+         } else {
+             if (result == FBWebDialogResultDialogNotCompleted) {
+                 // User clicked the "x" icon
+                 NSLog(@"User canceled story publishing.");
+             } else {
+                 // Handle the publish feed callback
+                 NSDictionary *urlParams = [self parseURLParams:[resultURL query]];
+                 if (![urlParams valueForKey:@"post_id"]) {
+                     // User clicked the Cancel button
+                     NSLog(@"User canceled story publishing.");
+                 } else {
+                     // User clicked the Share button
+                     NSString *msg = [NSString stringWithFormat:
+                                      @"Posted story, id: %@",
+                                      [urlParams valueForKey:@"post_id"]];
+                     NSLog(@"%@", msg);
+                     // Show the result in an alert
+                     [[[UIAlertView alloc] initWithTitle:@"Result"
+                                                 message:msg
+                                                delegate:nil
+                                       cancelButtonTitle:@"OK!"
+                                       otherButtonTitles:nil]
+                      show];
+                 }
+             }
+         }
+     }];
 }
+
 
 -(void)shareWeatherForecast
 {
-    
+    [self facebookLogin];
+}
+
+- (NSDictionary*)parseURLParams:(NSString *)query {
+    NSArray *pairs = [query componentsSeparatedByString:@"&"];
+    NSMutableDictionary *params = [[NSMutableDictionary alloc] init];
+    for (NSString *pair in pairs) {
+        NSArray *kv = [pair componentsSeparatedByString:@"="];
+        NSString *val =
+        [kv[1] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+        params[kv[0]] = val;
+    }
+    return params;
 }
 
 -(void)facebookLogin
 {
+    // get the app delegate so that we can access the session property
+    AppDelegate *appDelegate = [[UIApplication sharedApplication]delegate];
     
+    // this button's job is to flip-flop the session from open to closed
+    if (appDelegate.session.isOpen) {
+        // if a user logs out explicitly, we delete any cached token information, and next
+        // time they run the applicaiton they will be presented with log in UX again; most
+        // users will simply close the app or switch away, without logging out; this will
+        // cause the implicit cached-token login to occur on next launch of the application
+        [appDelegate.session closeAndClearTokenInformation];
+        
+    } else {
+        if (appDelegate.session.state != FBSessionStateCreated) {
+            // Create a new, logged out session.
+            appDelegate.session = [[FBSession alloc] init];
+        }
+        
+        // if the session isn't open, let's open it now and present the login UX to the user
+        [appDelegate.session openWithCompletionHandler:^(FBSession *session,
+                                                         FBSessionState status,
+                                                         NSError *error) {
+            // and here we make sure to update our UX according to the new session state
+        }];
+    }
 }
 
 -(void)initiateSearch
@@ -451,6 +534,26 @@
     
     // Set up display interface
     [self buildForecast];
+    
+    AppDelegate *appDelegate = [[UIApplication sharedApplication]delegate];
+    if (!appDelegate.session.isOpen) {
+        // create a fresh session object
+        [FBSettings setDefaultAppID: @"557136654372374"];
+        appDelegate.session = [[FBSession alloc] init];
+        
+        // if we don't have a cached token, a call to open here would cause UX for login to
+        // occur; we don't want that to happen unless the user clicks the login button, and so
+        // we check here to make sure we have a token before calling open
+        if (appDelegate.session.state == FBSessionStateCreatedTokenLoaded) {
+            // even though we had a cached token, we need to login to make the session usable
+            [appDelegate.session openWithCompletionHandler:^(FBSession *session,
+                                                             FBSessionState status,
+                                                             NSError *error) {
+                // we recurse here, in order to update buttons and labels
+                //[self updateView];
+            }];
+        }
+    }
 }
 
 - (void)didReceiveMemoryWarning

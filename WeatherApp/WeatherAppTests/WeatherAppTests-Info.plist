@@ -12,8 +12,6 @@
 	<string>6.0</string>
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
-	<key>FacebookAppID</key>
-	<string>557136654372374</string>
 	<key>FacebookDisplayName</key>
 	<string>Weather App</string>
 	<key>CFBundleShortVersionString</key>
@@ -22,5 +20,7 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>FacebookAppID</key>
+	<string>557136654372374</string>
 </dict>
 </plist>
