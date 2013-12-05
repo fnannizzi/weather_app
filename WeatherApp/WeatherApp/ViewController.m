@@ -193,6 +193,9 @@
     bool isZipCode = false;
     bool isCity = false;
     
+    NSError *REError = NULL;
+    self.regex = [NSRegularExpression regularExpressionWithPattern:@"^[A-Za-z]+[ ]*[A-Za-z]*,[ ]?[A-Za-z]{2,}(,[ ]?[A-Za-z]{2,})?$" options:0 error:&REError];
+    
     NSString *locationStr = self.locationField.text;
     
     if([locationStr length] < 1){
@@ -214,8 +217,17 @@
         }
     }
     else {
-        NSLog(@"Location is a city.");
-        isCity = true;
+        NSTextCheckingResult *match = [self.regex firstMatchInString:locationStr options:0 range:NSMakeRange(0, [locationStr length])];
+        if(!match){
+            NSLog(@"Aborting search on incorrect city name.");
+            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"Are you searching for a city? Make sure to give the city name, followed by a comma and the city's state or country." delegate:self cancelButtonTitle:@"Okay" otherButtonTitles:nil];
+            [alert show];
+            return;
+        }
+        else {
+            NSLog(@"Location is a city.");
+            isCity = true;
+        }
     }
     
     
@@ -337,7 +349,7 @@
     
     // Set share current weather button
     [self.shareCurrentWeatherButton setTitle:@"Share Current Weather" forState:UIControlStateNormal];
-    self.shareWeatherForecastButton.enabled = YES;
+    self.shareCurrentWeatherButton.enabled = YES;
     
     // Set share weather forecast button
     [self.shareWeatherForecastButton setTitle:@"Share Weather Forecast" forState:UIControlStateNormal];
@@ -495,6 +507,7 @@
     self.shareCurrentWeatherButton.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
     [self.shareCurrentWeatherButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
     self.shareCurrentWeatherButton.frame = CGRectMake(10, 330, (self.screenWidth - 20), 30);
+    self.shareCurrentWeatherButton.enabled = NO;
     // Add the share current weather button to the display view
     [self.displayView addSubview:self.shareCurrentWeatherButton];
     
@@ -505,6 +518,7 @@
     self.shareWeatherForecastButton.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
     [self.shareWeatherForecastButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
     self.shareWeatherForecastButton.frame = CGRectMake(10, 360, (self.screenWidth - 20), 30);
+    self.shareWeatherForecastButton.enabled = NO;
     // Add the share current weather button to the display view
     [self.displayView addSubview:self.shareWeatherForecastButton];
     

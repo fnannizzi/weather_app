@@ -26,6 +26,9 @@
 // JSON data
 @property (nonatomic, strong) NSDictionary *weather;
 
+// Data validation regex
+@property (nonatomic, strong) NSRegularExpression *regex;
+
 // Weather display components
 @property (nonatomic, strong) UIView *displayView;
 @property (nonatomic, strong) UILabel *cityNameLabel;
