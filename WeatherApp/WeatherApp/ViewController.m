@@ -16,17 +16,47 @@
 @implementation ViewController
 
 
+-(void)confirmShareCurrentWeather
+{
+    
+    self.sharingCurrentWeather = true;
+    self.sharingWeatherForecast = false;
+    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Post to Facebook" message:@"" delegate:self cancelButtonTitle:@"Cancel" otherButtonTitles:@"Post Current Weather",nil];
+    [alert show];
+}
+
+-(void)confirmShareWeatherForecast
+{
+    self.sharingCurrentWeather = false;
+    self.sharingWeatherForecast = true;
+    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Post to Facebook" message:@"" delegate:self cancelButtonTitle:@"Cancel" otherButtonTitles:@"Post Weather Forecast",nil];
+    [alert show];
+}
+
+-(void)alertView:(UIAlertView *)alertView didDismissWithButtonIndex:(NSInteger)buttonIndex {
+    if (buttonIndex == 0) {
+        NSLog(@"User cancelled posting.");
+    }
+    else if (buttonIndex == 1) {
+        NSLog(@"User is posting to facebook.");
+        if(self.sharingCurrentWeather)
+            [self shareCurrentWeather];
+        else if(self.sharingWeatherForecast)
+            [self shareWeatherForecast];
+    }
+}
+
 -(void)shareCurrentWeather
 {
     [self facebookLogin];
     // Put together the dialog parameters
     NSMutableDictionary *params =
     [NSMutableDictionary dictionaryWithObjectsAndKeys:
-     @"Facebook SDK for iOS", @"name",
-     @"Build great social apps and get more installs.", @"caption",
-     @"The Facebook SDK for iOS makes it easier and faster to develop Facebook integrated iOS apps.", @"description",
-     @"https://developers.facebook.com/ios", @"link",
-     @"https://raw.github.com/fbsamples/ios-3.x-howtos/master/Images/iossdk_logo.png", @"picture",
+     self.postTitle, @"name",
+     self.postCaptionCurrentWeather, @"caption",
+     self.postDescriptionCurrentWeather, @"description",
+     self.postLink, @"link",
+     self.postImage, @"picture",
      nil];
     
     // Invoke the dialog
@@ -70,6 +100,52 @@
 -(void)shareWeatherForecast
 {
     [self facebookLogin];
+    
+    // Put together the dialog parameters
+    NSMutableDictionary *params =
+    [NSMutableDictionary dictionaryWithObjectsAndKeys:
+     self.postTitle, @"name",
+     self.postCaptionWeatherForecast, @"caption",
+     self.postDescriptionWeatherForecast, @"description",
+     self.postLink, @"link",
+     self.postImage, @"picture",
+     nil];
+    
+    // Invoke the dialog
+    [FBWebDialogs presentFeedDialogModallyWithSession:nil
+                                           parameters:params
+                                              handler:
+     ^(FBWebDialogResult result, NSURL *resultURL, NSError *error) {
+         if (error) {
+             // Error launching the dialog or publishing a story.
+             NSLog(@"Error publishing story.");
+         } else {
+             if (result == FBWebDialogResultDialogNotCompleted) {
+                 // User clicked the "x" icon
+                 NSLog(@"User canceled story publishing.");
+             } else {
+                 // Handle the publish feed callback
+                 NSDictionary *urlParams = [self parseURLParams:[resultURL query]];
+                 if (![urlParams valueForKey:@"post_id"]) {
+                     // User clicked the Cancel button
+                     NSLog(@"User canceled story publishing.");
+                 } else {
+                     // User clicked the Share button
+                     NSString *msg = [NSString stringWithFormat:
+                                      @"Posted story, id: %@",
+                                      [urlParams valueForKey:@"post_id"]];
+                     NSLog(@"%@", msg);
+                     // Show the result in an alert
+                     [[[UIAlertView alloc] initWithTitle:@"Result"
+                                                 message:msg
+                                                delegate:nil
+                                       cancelButtonTitle:@"OK!"
+                                       otherButtonTitles:nil]
+                      show];
+                 }
+             }
+         }
+     }];
 }
 
 - (NSDictionary*)parseURLParams:(NSString *)query {
@@ -95,7 +171,7 @@
         // time they run the applicaiton they will be presented with log in UX again; most
         // users will simply close the app or switch away, without logging out; this will
         // cause the implicit cached-token login to occur on next launch of the application
-        [appDelegate.session closeAndClearTokenInformation];
+        //[appDelegate.session closeAndClearTokenInformation];
         
     } else {
         if (appDelegate.session.state != FBSessionStateCreated) {
@@ -133,12 +209,12 @@
             return;
         }
         else {
-            NSLog(@":Location is a zip code.");
+            NSLog(@"Location is a zip code.");
             isZipCode = true;
         }
     }
     else {
-        NSLog(@":Location is a city.");
+        NSLog(@"Location is a city.");
         isCity = true;
     }
     
@@ -180,6 +256,164 @@
             [self displayNoResults];
         }
     }
+}
+
+-(void)displayForecast
+{
+    NSLog(@"Preparing to display forecast data for %@", self.locationField.text);
+    
+    // Set city name label
+    NSString *cityNameText = [NSString stringWithFormat: @"%@", [[self.weather objectForKey:@"location"] objectForKey:@"city"]];
+    if([cityNameText length] > 0)
+        self.cityNameLabel.text = cityNameText;
+    else
+        self.cityNameLabel.text = @"";
+    
+    // Set country and region name label
+    NSString *regionNameText = [NSString stringWithFormat: @"%@", [[self.weather objectForKey:@"location"] objectForKey:@"region"]];
+    NSString *countryNameText = [NSString stringWithFormat: @"%@", [[self.weather objectForKey:@"location"] objectForKey:@"country"]];
+    if(([regionNameText length] > 0) && ([countryNameText length] > 0))
+        self.regionCountryNameLabel.text = [NSString stringWithFormat: @"%@, %@", regionNameText, countryNameText];
+    else if([regionNameText length] > 0)
+        self.regionCountryNameLabel.text = [NSString stringWithFormat: @"%@", regionNameText];
+    else if([countryNameText length] > 0)
+        self.regionCountryNameLabel.text = [NSString stringWithFormat: @"%@", countryNameText];
+    
+    // Set weather image label
+    NSString *weatherImageText = [NSString stringWithFormat: @"%@", [self.weather objectForKey:@"img"]];
+    if([weatherImageText length] > 0){
+        NSURL *weatherImageURL = [NSURL URLWithString:[weatherImageText stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+        self.weatherImageLabel.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageWithData:[NSData dataWithContentsOfURL:weatherImageURL]]];
+    }
+    else
+        self.weatherImageLabel.backgroundColor = [UIColor clearColor];
+    
+    // Set weather description label
+    NSString *weatherDescriptionText = [NSString stringWithFormat:@"%@", [[self.weather objectForKey:@"condition"] objectForKey:@"text"]];
+    if([weatherDescriptionText length] > 0)
+        self.weatherDescriptionLabel.text = weatherDescriptionText;
+    else
+        self.weatherDescriptionLabel.text = @"";
+    
+    // Set temperature label
+    NSString *temperatureText = [NSString stringWithFormat:@"%@", [[self.weather objectForKey:@"condition"] objectForKey:@"temp"]];
+    if([temperatureText length] > 0)
+        self.temperatureLabel.text = [NSString stringWithFormat:@"%@%@", temperatureText, @"\u00B0"];
+    else
+        self.temperatureLabel.text = @"";
+    
+    // Set forecast title label
+    self.forecastTitleLabel.text = @"Forecast";
+    
+    // Set weather forecast table (and also fill out description string)
+    for(int rows = 0; rows < 6; rows++){
+        for(int cols = 0; cols < 4; cols++){
+            UILabel *label = [self.weatherForecastTable objectAtIndex:((rows*4)+cols)];
+            if(rows == 0){
+                label.backgroundColor = [UIColor grayColor];
+                if(cols == 0)
+                    label.text = @"Day";
+                else if(cols == 1)
+                    label.text = @"Weather";
+                else if(cols == 2)
+                    label.text = @"High";
+                else if(cols == 3)
+                    label.text = @"Low";
+            }
+            else {
+                NSDictionary *forecast = [self.weather objectForKey:@"forecast"][rows - 1];
+                label.backgroundColor = [UIColor whiteColor];
+                if(cols == 0)
+                    label.text = [NSString stringWithFormat:@"%@", [forecast objectForKey:@"Day"]];
+                else if(cols == 1)
+                    label.text = [NSString stringWithFormat:@"%@", [forecast objectForKey:@"Weather"]];
+                else if(cols == 2)
+                    label.text = [NSString stringWithFormat:@"%@", [forecast objectForKey:@"High"]];
+                else if(cols == 3)
+                    label.text = [NSString stringWithFormat:@"%@", [forecast objectForKey:@"Low"]];
+            }
+        }
+    }
+    
+    // Set share current weather button
+    [self.shareCurrentWeatherButton setTitle:@"Share Current Weather" forState:UIControlStateNormal];
+    self.shareWeatherForecastButton.enabled = YES;
+    
+    // Set share weather forecast button
+    [self.shareWeatherForecastButton setTitle:@"Share Weather Forecast" forState:UIControlStateNormal];
+    self.shareWeatherForecastButton.enabled = YES;
+    
+    // Save some data for later in case the user would like to post to Facebook
+    self.postTitle = [NSString stringWithFormat:@"%@, %@", cityNameText, self.regionCountryNameLabel.text];
+    self.postCaptionCurrentWeather = [NSString stringWithFormat:@"The current condition for %@ is %@.", cityNameText, weatherDescriptionText];
+    self.postCaptionWeatherForecast = [NSString stringWithFormat:@"Weather Forecast for %@", cityNameText];
+    self.postImage = weatherImageText;
+    self.postLink = [NSString stringWithFormat:@"%@", [self.weather objectForKey:@"link"]];
+    self.postDescriptionCurrentWeather = [NSString stringWithFormat:@"Temperature is %@%@.", temperatureText, @"\u00B0"];
+    self.postDescriptionWeatherForecast = [NSString stringWithFormat:@"%@, %@, %@/%@. %@, %@, %@/%@. %@, %@, %@/%@. %@, %@, %@/%@. %@, %@, %@/%@.", [[self.weather objectForKey:@"forecast"][0] objectForKey:@"Day"], [[self.weather objectForKey:@"forecast"][0] objectForKey:@"Weather"], [[self.weather objectForKey:@"forecast"][0] objectForKey:@"High"], [[self.weather objectForKey:@"forecast"][0] objectForKey:@"Low"],
+        [[self.weather objectForKey:@"forecast"][1] objectForKey:@"Day"], [[self.weather objectForKey:@"forecast"][1] objectForKey:@"Weather"],[[self.weather objectForKey:@"forecast"][1] objectForKey:@"High"], [[self.weather objectForKey:@"forecast"][1] objectForKey:@"Low"], [[self.weather objectForKey:@"forecast"][2] objectForKey:@"Day"], [[self.weather objectForKey:@"forecast"][2] objectForKey:@"Weather"], [[self.weather objectForKey:@"forecast"][2] objectForKey:@"High"], [[self.weather objectForKey:@"forecast"][2] objectForKey:@"Low"], [[self.weather objectForKey:@"forecast"][3] objectForKey:@"Day"], [[self.weather objectForKey:@"forecast"][3] objectForKey:@"Weather"], [[self.weather objectForKey:@"forecast"][3] objectForKey:@"High"], [[self.weather objectForKey:@"forecast"][3] objectForKey:@"Low"], [[self.weather objectForKey:@"forecast"][4] objectForKey:@"Day"], [[self.weather objectForKey:@"forecast"][4] objectForKey:@"Weather"], [[self.weather objectForKey:@"forecast"][4] objectForKey:@"High"], [[self.weather objectForKey:@"forecast"][4] objectForKey:@"Low"]];
+}
+
+-(void)displayNoResults
+{
+    self.cityNameLabel.text = @"No results found!";
+    self.regionCountryNameLabel.text = @"";
+    self.weatherImageLabel.backgroundColor = [UIColor clearColor];
+    self.weatherDescriptionLabel.text = @"";
+    self.temperatureLabel.text = @"";
+    self.forecastTitleLabel.text = @"";
+    
+    // Set weather forecast table
+    for(int rows = 0; rows < 6; rows++){
+        for(int cols = 0; cols < 4; cols++){
+            UILabel *label = [self.weatherForecastTable objectAtIndex:((rows*4)+cols)];
+            label.backgroundColor = [UIColor clearColor];
+            label.text = @"";
+        }
+    }
+    
+    [self.shareCurrentWeatherButton setTitle:@"" forState:UIControlStateNormal];
+    self.shareCurrentWeatherButton.enabled = NO;
+    [self.shareWeatherForecastButton setTitle:@"" forState:UIControlStateNormal];
+    self.shareWeatherForecastButton.enabled = NO;
+}
+
+-(void)radiobuttonSelected:(id)sender
+{
+    switch ([sender tag]) {
+        case 0:
+            if([self.tempFRadioButton isSelected]==YES)
+            {
+                [self.tempFRadioButton setSelected:NO];
+                [self.tempCRadioButton setSelected:YES];
+                NSLog(@"Temperature set to Celsius.");
+            }
+            else{
+                [self.tempFRadioButton setSelected:YES];
+                [self.tempCRadioButton setSelected:NO];
+                NSLog(@"Temperature set to Fahrenheit.");
+            }
+            break;
+        case 1:
+            if([self.tempCRadioButton isSelected]==YES)
+            {
+                [self.tempCRadioButton setSelected:NO];
+                [self.tempFRadioButton setSelected:YES];
+                NSLog(@"Temperature set to Fahrenheit.");
+            }
+            else{
+                [self.tempCRadioButton setSelected:YES];
+                [self.tempFRadioButton setSelected:NO];
+                NSLog(@"Temperature set to Celsius.");
+            }
+            break;
+        default:
+            break;
+    }
+    NSString *locationStr = self.locationField.text;
+    
+    if([locationStr length] > 1)
+        [self initiateSearch];
 }
 
 -(void)buildForecast
@@ -256,17 +490,17 @@
     
     // Add share current weather button
     self.shareCurrentWeatherButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
-    [self.shareCurrentWeatherButton addTarget:self action:@selector(shareCurrentWeather) forControlEvents:UIControlEventTouchDown];
+    [self.shareCurrentWeatherButton addTarget:self action:@selector(confirmShareCurrentWeather) forControlEvents:UIControlEventTouchDown];
     [self.shareCurrentWeatherButton setTitle:@"" forState:UIControlStateNormal];
     self.shareCurrentWeatherButton.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
     [self.shareCurrentWeatherButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
     self.shareCurrentWeatherButton.frame = CGRectMake(10, 330, (self.screenWidth - 20), 30);
     // Add the share current weather button to the display view
     [self.displayView addSubview:self.shareCurrentWeatherButton];
-   
+    
     // Add share weather forecast button
     self.shareWeatherForecastButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
-    [self.shareWeatherForecastButton addTarget:self action:@selector(shareWeatherForecast) forControlEvents:UIControlEventTouchDown];
+    [self.shareWeatherForecastButton addTarget:self action:@selector(confirmShareWeatherForecast) forControlEvents:UIControlEventTouchDown];
     [self.shareWeatherForecastButton setTitle:@"" forState:UIControlStateNormal];
     self.shareWeatherForecastButton.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
     [self.shareWeatherForecastButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
@@ -276,150 +510,6 @@
     
     // Add the display view to the main view
     [self.view addSubview:self.displayView];
-}
-
--(void)displayForecast
-{
-    NSLog(@"Preparing to display forecast data for %@", self.locationField.text);
-    
-    // Set city name label
-    NSString *cityNameText = [NSString stringWithFormat: @"%@", [[self.weather objectForKey:@"location"] objectForKey:@"city"]];
-    if([cityNameText length] > 0)
-        self.cityNameLabel.text = cityNameText;
-    else
-        self.cityNameLabel.text = @"";
-    
-    // Set country and region name label
-    NSString *regionNameText = [NSString stringWithFormat: @"%@", [[self.weather objectForKey:@"location"] objectForKey:@"region"]];
-    NSString *countryNameText = [NSString stringWithFormat: @"%@", [[self.weather objectForKey:@"location"] objectForKey:@"country"]];
-    if(([regionNameText length] > 0) && ([countryNameText length] > 0))
-        self.regionCountryNameLabel.text = [NSString stringWithFormat: @"%@, %@", regionNameText, countryNameText];
-    else if([regionNameText length] > 0)
-        self.regionCountryNameLabel.text = [NSString stringWithFormat: @"%@", regionNameText];
-    else if([countryNameText length] > 0)
-        self.regionCountryNameLabel.text = [NSString stringWithFormat: @"%@", countryNameText];
-    
-    // Set weather image label
-    NSString *weatherImageText = [NSString stringWithFormat: @"%@", [self.weather objectForKey:@"img"]];
-    if([weatherImageText length] > 0){
-        NSURL *weatherImageURL = [NSURL URLWithString:[weatherImageText stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
-        self.weatherImageLabel.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageWithData:[NSData dataWithContentsOfURL:weatherImageURL]]];
-    }
-    else
-        self.weatherImageLabel.backgroundColor = [UIColor clearColor];
-    
-    // Set weather description label
-    NSString *weatherDescriptionText = [NSString stringWithFormat:@"%@", [[self.weather objectForKey:@"condition"] objectForKey:@"text"]];
-    if([weatherDescriptionText length] > 0)
-        self.weatherDescriptionLabel.text = weatherDescriptionText;
-    else
-        self.weatherDescriptionLabel.text = @"";
-    
-    // Set temperature label
-    NSString *temperatureText = [NSString stringWithFormat:@"%@", [[self.weather objectForKey:@"condition"] objectForKey:@"temp"]];
-    if([temperatureText length] > 0)
-        self.temperatureLabel.text = [NSString stringWithFormat:@"%@%@", temperatureText, @"\u00B0"];
-    else
-        self.temperatureLabel.text = @"";
-    
-    // Set forecast title label
-    self.forecastTitleLabel.text = @"Forecast";
-    
-    // Set weather forecast table
-    for(int rows = 0; rows < 6; rows++){
-        for(int cols = 0; cols < 4; cols++){
-            UILabel *label = [self.weatherForecastTable objectAtIndex:((rows*4)+cols)];
-            if(rows == 0){
-                label.backgroundColor = [UIColor grayColor];
-                if(cols == 0)
-                    label.text = @"Day";
-                else if(cols == 1)
-                    label.text = @"Weather";
-                else if(cols == 2)
-                    label.text = @"High";
-                else if(cols == 3)
-                    label.text = @"Low";
-            }
-            else {
-                NSDictionary *forecast = [self.weather objectForKey:@"forecast"][rows - 1];
-                label.backgroundColor = [UIColor whiteColor];
-                if(cols == 0)
-                    label.text = [NSString stringWithFormat:@"%@", [forecast objectForKey:@"Day"]];
-                else if(cols == 1)
-                    label.text = [NSString stringWithFormat:@"%@", [forecast objectForKey:@"Weather"]];
-                else if(cols == 2)
-                    label.text = [NSString stringWithFormat:@"%@", [forecast objectForKey:@"High"]];
-                else if(cols == 3)
-                    label.text = [NSString stringWithFormat:@"%@", [forecast objectForKey:@"Low"]];
-            }
-        }
-    }
-    
-    // Set share current weather button
-    [self.shareCurrentWeatherButton setTitle:@"Share Current Weather" forState:UIControlStateNormal];
-    
-    // Set share weather forecast button
-    [self.shareWeatherForecastButton setTitle:@"Share Weather Forecast" forState:UIControlStateNormal];
-}
-
--(void)displayNoResults
-{
-    self.cityNameLabel.text = @"No results found!";
-    self.regionCountryNameLabel.text = @"";
-    self.weatherImageLabel.backgroundColor = [UIColor clearColor];
-    self.weatherDescriptionLabel.text = @"";
-    self.temperatureLabel.text = @"";
-    self.forecastTitleLabel.text = @"";
-    
-    // Set weather forecast table
-    for(int rows = 0; rows < 6; rows++){
-        for(int cols = 0; cols < 4; cols++){
-            UILabel *label = [self.weatherForecastTable objectAtIndex:((rows*4)+cols)];
-            label.backgroundColor = [UIColor clearColor];
-            label.text = @"";
-        }
-    }
-    
-    [self.shareCurrentWeatherButton setTitle:@"" forState:UIControlStateNormal];
-    [self.shareWeatherForecastButton setTitle:@"" forState:UIControlStateNormal];
-}
-
--(void)radiobuttonSelected:(id)sender
-{
-    switch ([sender tag]) {
-        case 0:
-            if([self.tempFRadioButton isSelected]==YES)
-            {
-                [self.tempFRadioButton setSelected:NO];
-                [self.tempCRadioButton setSelected:YES];
-                NSLog(@"Temperature set to Celsius.");
-            }
-            else{
-                [self.tempFRadioButton setSelected:YES];
-                [self.tempCRadioButton setSelected:NO];
-                NSLog(@"Temperature set to Fahrenheit.");
-            }
-            break;
-        case 1:
-            if([self.tempCRadioButton isSelected]==YES)
-            {
-                [self.tempCRadioButton setSelected:NO];
-                [self.tempFRadioButton setSelected:YES];
-                NSLog(@"Temperature set to Fahrenheit.");
-            }
-            else{
-                [self.tempCRadioButton setSelected:YES];
-                [self.tempFRadioButton setSelected:NO];
-                NSLog(@"Temperature set to Celsius.");
-            }
-            break;
-        default:
-            break;
-    }
-    NSString *locationStr = self.locationField.text;
-    
-    if([locationStr length] > 1)
-        [self initiateSearch];
 }
 
 -(void)buildControls

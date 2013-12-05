@@ -38,6 +38,17 @@
 @property (nonatomic, strong) UIButton *shareCurrentWeatherButton;
 @property (nonatomic, strong) UIButton *shareWeatherForecastButton;
 
+// Facebook post components
+@property bool sharingCurrentWeather;
+@property bool sharingWeatherForecast;
+@property (nonatomic, strong) NSString *postTitle;
+@property (nonatomic, strong) NSString *postCaptionCurrentWeather;
+@property (nonatomic, strong) NSString *postCaptionWeatherForecast;
+@property (nonatomic, strong) NSString *postDescriptionCurrentWeather;
+@property (nonatomic, strong) NSString *postDescriptionWeatherForecast;
+@property (nonatomic, strong) NSString *postLink;
+@property (nonatomic, strong) NSString *postImage;
+
 -(void)initiateSearch;
 -(void)radiobuttonSelected:(id)sender;
 -(void)displayForecast;
@@ -49,5 +60,6 @@
 -(void)shareCurrentWeather;
 -(void)shareWeatherForecast;
 -(void)facebookLogin;
+-(NSDictionary*)parseURLParams:(NSString *)query;
 
 @end
