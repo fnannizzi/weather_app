@@ -190,6 +190,9 @@
 
 -(void)initiateSearch
 {
+    
+    [self.locationField resignFirstResponder];
+    
     bool isZipCode = false;
     bool isCity = false;
     
@@ -310,7 +313,7 @@
     // Set temperature label
     NSString *temperatureText = [NSString stringWithFormat:@"%@", [[self.weather objectForKey:@"condition"] objectForKey:@"temp"]];
     if([temperatureText length] > 0)
-        self.temperatureLabel.text = [NSString stringWithFormat:@"%@%@", temperatureText, @"\u00B0"];
+        self.temperatureLabel.text = [NSString stringWithFormat:@"%@%@%@", temperatureText, @"\u00B0", [[self.weather objectForKey:@"units"] objectForKey:@"temperature"]];
     else
         self.temperatureLabel.text = @"";
     
@@ -340,9 +343,9 @@
                 else if(cols == 1)
                     label.text = [NSString stringWithFormat:@"%@", [forecast objectForKey:@"Weather"]];
                 else if(cols == 2)
-                    label.text = [NSString stringWithFormat:@"%@", [forecast objectForKey:@"High"]];
+                    label.text = [NSString stringWithFormat:@"%@%@%@", [forecast objectForKey:@"High"], @"\u00B0", [[self.weather objectForKey:@"units"] objectForKey:@"temperature"]];
                 else if(cols == 3)
-                    label.text = [NSString stringWithFormat:@"%@", [forecast objectForKey:@"Low"]];
+                    label.text = [NSString stringWithFormat:@"%@%@%@", [forecast objectForKey:@"Low"], @"\u00B0", [[self.weather objectForKey:@"units"] objectForKey:@"temperature"]];
             }
         }
     }
@@ -489,11 +492,16 @@
                 label = [[UILabel alloc] initWithFrame:CGRectMake(10, (190 + (rows*20)), 60, 20) ];
             else if(cols == 1)
                 label = [[UILabel alloc] initWithFrame:CGRectMake(70, (190 + (rows*20)), 140, 20) ];
-            else if(cols == 2)
+            else if(cols == 2){
                 label = [[UILabel alloc] initWithFrame:CGRectMake(210, (190 + (rows*20)), 50, 20) ];
-            else if(cols == 3)
+                if(rows > 0)
+                    label.textColor = [UIColor orangeColor];
+            }
+            else if(cols == 3){
                 label = [[UILabel alloc] initWithFrame:CGRectMake(260, (190 + (rows*20)), 50, 20) ];
-            
+                if(rows > 0)
+                    label.textColor = [UIColor blueColor];
+            }
             label.textAlignment = NSTextAlignmentCenter;
             [self.weatherForecastTable addObject:label];
             [self.displayView addSubview:label];
@@ -593,10 +601,14 @@
     
     
     // Add search button
-    self.searchButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+    self.searchButton = [UIButton buttonWithType:UIButtonTypeCustom];
     [self.searchButton addTarget:self action:@selector(initiateSearch) forControlEvents:UIControlEventTouchDown];
     [self.searchButton setTitle:@"Search" forState:UIControlStateNormal];
     self.searchButton.backgroundColor = [UIColor whiteColor];
+    [self.searchButton setTitleColor:[UIColor colorWithRed:51.0f/255.0f green:102.0f/255.0f blue:153.0f/255.0f alpha:1.0f] forState:UIControlStateNormal];
+    self.searchButton.font = [UIFont fontWithName:@"Helvetica" size:16];
+    self.searchButton.layer.cornerRadius = 5;
+    //self.searchButton.clipsToBounds = YES;
     self.searchButton.frame = CGRectMake(250, 60, 60, 30);
     // Add the search button to the control view
     [self.controlView addSubview:self.searchButton];
