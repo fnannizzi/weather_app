@@ -48,7 +48,7 @@
 
 -(void)shareCurrentWeather
 {
-    [self facebookLogin];
+    //[self facebookLogin];
     // Put together the dialog parameters
     NSMutableDictionary *params =
     [NSMutableDictionary dictionaryWithObjectsAndKeys:
@@ -99,7 +99,7 @@
 
 -(void)shareWeatherForecast
 {
-    [self facebookLogin];
+    //[self facebookLogin];
     
     // Put together the dialog parameters
     NSMutableDictionary *params =
