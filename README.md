@@ -1,4 +1,4 @@
 weather_app
 ===========
 
-Simple weather app (pulls from Yahoo! Weather) for iOS.
+Simple weather app (data from Yahoo! Weather) for iOS.
